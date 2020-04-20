@@ -1,13 +1,18 @@
-import {BadRequestException, HttpException, HttpStatus, Injectable, Logger, OnModuleInit} from '@nestjs/common';
+import {BadRequestException, Injectable, Logger, OnModuleInit} from '@nestjs/common';
 import {Client} from 'whatsapp-web.js';
 import {QrCodeDto} from '../dto/authentication/qrcode.dto';
 import {StatusDto} from '../dto/authentication/status.dto';
+import {Message} from '../domain/message/message.entity';
+import {MessagesService} from '../domain/message/messages.service';
+import ShortUniqueId from 'short-unique-id';
+
 
 const QrCodeTerminal = require('qrcode-terminal');
 // No NestJS 7 não tem o Scope.SINGLETON para passar na anotação Injectable
 // mas o comportamento default é o SINGLETON
 @Injectable()
 export class ClientService implements OnModuleInit {
+  constructor(private readonly messagesService: MessagesService) {}
 
   private whatsClient: Client = new Client();
 
@@ -16,6 +21,9 @@ export class ClientService implements OnModuleInit {
   private ready = false;
 
   private readonly logger = new Logger(ClientService.name);
+
+  private readonly uid = new ShortUniqueId();
+
 
   onModuleInit() {
 
@@ -32,6 +40,7 @@ export class ClientService implements OnModuleInit {
     this.whatsClient.on('ready', () => {
       this.logger.log('WhatsApp Ready');
       this.ready = true;
+      this.logger.log(this.whatsClient.info);
     });
 
     this.whatsClient.on('disconnected', (reason) => {
@@ -39,8 +48,26 @@ export class ClientService implements OnModuleInit {
       this.ready = false;
     });
 
-    this.whatsClient.on('message', message => {
-      this.logger.log(message);
+    this.whatsClient.on('message', msg => {
+      this.logger.log('Creating Message in Database');
+      const message = new Message();
+      message.id = msg.id._serialized;
+      message.fromMe = msg.id.fromMe;
+      message.idMessage = msg.id.id;
+      message.ack = msg.ack;
+      message.hasMedia = msg.hasMedia;
+      message.body = msg.body;
+      message.msgType = msg.type;
+      message.timestamp = msg.timestamp;
+      message.from = msg.from;
+      message.to = msg.from;
+      message.isForwarded = msg.isForwarded;
+      message.broadcast = msg.broadcast;
+      message.hasQuotedMsg = msg.hasQuotedMsg;
+      message.mentionedIds = msg.mentionedIds.join(",");
+      message.mediaObjectName = "";
+      this.messagesService.save(message);
+      this.logger.log('Message Saved');
     });
 
   }
@@ -76,5 +103,26 @@ export class ClientService implements OnModuleInit {
      if(messageProcessing.message != null) {
        throw new BadRequestException(messageProcessing.message)
      }
+
+    this.logger.log('Creating Message in Database');
+    const message = new Message();
+    const uuid = this.uid.randomUUID(20);
+    message.id = `true_${phoneNumber}@c.us_${uuid}`;
+    message.fromMe = true;
+    message.idMessage = uuid;
+    message.ack = -1;
+    message.hasMedia = false;
+    message.body = msg;
+    message.msgType = 'chat';
+    message.timestamp = (Date.now() / 1000 | 0).toString();
+    message.from = `${this.whatsClient.info.me.user}`;
+    message.to = `${phoneNumber}@c.us`;
+    message.isForwarded = false;
+    message.broadcast = false;
+    message.hasQuotedMsg = 'false';
+    message.mentionedIds = '';
+    message.mediaObjectName = "";
+    this.messagesService.save(message);
+    this.logger.log('Message Saved');
   }
 }
