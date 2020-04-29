@@ -9,6 +9,9 @@ import {TypeOrmModule} from '@nestjs/typeorm';
 import { Connection } from 'typeorm';
 import {Message} from './domain/message/message.entity';
 import {MessagesModule} from './domain/message/messages.module';
+import {ServeStaticModule} from '@nestjs/serve-static';
+import {doc} from 'prettier';
+import join = doc.builders.join;
 
 
 
@@ -22,7 +25,12 @@ import {MessagesModule} from './domain/message/messages.module';
     database: 'whatsklink',
     entities: [Message],
     synchronize: true
-  }), MessagesModule],
+  }),
+    ServeStaticModule.forRoot({
+      rootPath: __dirname + '/../public',
+      exclude: ['/api*'],
+    }),
+    MessagesModule],
   controllers: [AppController, AuthenticationController, MessageController],
   providers: [AppService, ClientService, MessageService],
 })

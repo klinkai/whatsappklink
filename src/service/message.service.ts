@@ -12,6 +12,10 @@ export class MessageService {
 
   async sendMessage(phoneNumber: string, msg: string) {
       await this.clientService.sendMessage(phoneNumber, msg)
-   }
+  }
+
+  async sendMediaMessage(phoneNumber: string, mimeType: string, base64Content: string, fileName: string) {
+    await this.clientService.sendMediaMessage(phoneNumber, mimeType, base64Content, fileName)
+  }
 
 }

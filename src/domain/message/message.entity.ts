@@ -24,7 +24,7 @@ export class Message {
   @Column()
   hasMedia: boolean;
 
-  @Column()
+  @Column("text")
   body: string;
 
   @Column()

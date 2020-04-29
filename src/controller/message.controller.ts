@@ -1,6 +1,7 @@
 import {BadRequestException, Body, Controller, Post} from '@nestjs/common';
 import {MessageService} from '../service/message.service';
 import {SendMessageDto} from '../dto/message/sendMessage.dto';
+import {SendMediaMessageDto} from '../dto/message/sendMediaMessage.dto';
 
 @Controller()
 export class MessageController {
@@ -9,6 +10,11 @@ export class MessageController {
   @Post('/message/send')
   async sendMessage(@Body() sendMessageDto: SendMessageDto)  {
     return await this.messageService.sendMessage(sendMessageDto.phoneNumber, sendMessageDto.msg)
+  }
+
+  @Post('/message/sendMedia')
+  async sendMediaMessage(@Body() sendMediaMessage: SendMediaMessageDto)  {
+    return await this.messageService.sendMediaMessage(sendMediaMessage.phoneNumber, sendMediaMessage.mimeType, sendMediaMessage.base64Content, sendMediaMessage.fileName)
   }
 
 }
